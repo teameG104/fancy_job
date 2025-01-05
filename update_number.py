@@ -7,7 +7,6 @@ from datetime import datetime
 script_dir = os.path.dirname(os.path.abspath(__file__))
 os.chdir(script_dir)
 
-
 def read_number():
     with open('number.txt', 'r') as f:
         return int(f.read().strip())
