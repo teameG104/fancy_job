@@ -38,35 +38,33 @@ def git_push():
         print(result.stderr)
 
 
-def update_cron_with_random_time():
+def schedule_task_with_random_time():
+    """Schedule the script to run at a random time using Windows Task Scheduler."""
     # Generate random hour (0-23) and minute (0-59)
     random_hour = random.randint(0, 23)
     random_minute = random.randint(0, 59)
 
-    # Define the new cron job command
-    new_cron_command = f"{random_minute} {random_hour} * * * cd {script_dir} && python3 {os.path.join(script_dir, 'update_number.py')}\n"
+    # Task name
+    task_name = "UpdateNumberTask"
 
-    # Get the current crontab
-    cron_file = "/tmp/current_cron"
-    os.system(f"crontab -l > {cron_file} 2>/dev/null || true")  # Save current crontab, or create a new one if empty
+    # Path to Python executable and the script
+    python_path = subprocess.run(["where", "python"], capture_output=True, text=True).stdout.strip()
+    script_path = os.path.join(script_dir, "update_number.py")
 
-    # Update the crontab file
-    with open(cron_file, "r") as file:
-        lines = file.readlines()
+    # Command to create the task
+    schedule_command = (
+        f"schtasks /Create /F /SC DAILY /ST {random_hour:02d}:{random_minute:02d} "
+        f"/TN {task_name} /TR \"{python_path} {script_path}\""
+    )
 
-    with open(cron_file, "w") as file:
-        for line in lines:
-            # Remove existing entry for `update_number.py` if it exists
-            if "update_number.py" not in line:
-                file.write(line)
-        # Add the new cron job at the random time
-        file.write(new_cron_command)
+    # Run the command
+    result = subprocess.run(schedule_command, shell=True, capture_output=True, text=True)
+    if result.returncode == 0:
+        print(f"Task scheduled successfully to run at {random_hour:02d}:{random_minute:02d} tomorrow.")
+    else:
+        print("Error scheduling task:")
+        print(result.stderr)
 
-    # Load the updated crontab
-    os.system(f"crontab {cron_file}")
-    os.remove(cron_file)
-
-    print(f"Cron job updated to run at {random_hour}:{random_minute} tomorrow.")
 
 def main():
     try:
@@ -77,7 +75,7 @@ def main():
         git_commit()
         git_push()
 
-        update_cron_with_random_time()
+        schedule_task_with_random_time()
 
     except Exception as e:
         print(f"Error: {str(e)}")
@@ -85,4 +83,4 @@ def main():
 
 
 if __name__ == "__main__":
-    main() 
+    main()
